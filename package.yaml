@@ -20,6 +20,7 @@ default-extensions:
 library:
   dependencies:
   - base >=4.7 && <5
+  - containers
   - stm
   source-dirs: library
 tests:
