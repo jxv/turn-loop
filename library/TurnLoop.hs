@@ -92,14 +92,22 @@ newLobby = liftIO $ do
 type UserQueue sessionId rep userId = [(userId, MVar (Starter sessionId rep userId))]
 type AnnounceDeck sessionId rep userId = Map sessionId [MVar (Starter sessionId rep userId)]
 
-transferUser :: MonadIO m => TVar (UserQueue sessionId rep userId) -> userId -> m (Maybe (Starter sessionId rep userId))
+transferUser
+  :: MonadIO m
+  => TVar (UserQueue sessionId rep userId)
+  -> userId
+  -> m (Maybe (Starter sessionId rep userId))
 transferUser p i = liftIO $ do
   ref <- newEmptyMVar
   atomically $ modifyTVar p $ \q -> q ++ [(i, ref)]
   starter <- takeMVar ref
   return (Just starter)
 
-dequeueUser :: (Ord sessionId, MonadIO m) => TVar (UserQueue sessionId rep userId) -> TVar (AnnounceDeck sessionId rep userId) -> sessionId -> m (Maybe userId)
+dequeueUser
+  :: (Ord sessionId, MonadIO m) => TVar (UserQueue sessionId rep userId)
+  -> TVar (AnnounceDeck sessionId rep userId)
+  -> sessionId
+  -> m (Maybe userId)
 dequeueUser p w i = liftIO $ do
   maybePair <- atomically $ do
     q <- readTVar p
@@ -119,7 +127,11 @@ dequeueUser p w i = liftIO $ do
   where
     appendAt m k a = Map.alter (\case Nothing -> Just [a]; Just as -> Just (a:as)) k m
 
-announceSession :: (Ord sessionId, MonadIO m) => TVar (AnnounceDeck sessionId rep userId) -> Starter sessionId rep userId -> m ()
+announceSession
+  :: (Ord sessionId, MonadIO m)
+  => TVar (AnnounceDeck sessionId rep userId)
+  -> Starter sessionId rep userId
+  -> m ()
 announceSession w starter = liftIO $ do
   refs <- atomically $ do
     m <- readTVar w
@@ -196,7 +208,11 @@ newResults = liftIO $ do
     { rSaveResult = saveResult w
     , rFindResult = findResult w }
 
-saveResult :: (Ord sessionId, MonadIO m) => TVar (Map sessionId (Result sessionId rep userId state extra)) -> Result sessionId rep userId state extra -> m ()
+saveResult
+  :: (Ord sessionId, MonadIO m)
+  => TVar (Map sessionId (Result sessionId rep userId state extra))
+  -> Result sessionId rep userId state extra
+  -> m ()
 saveResult w r = liftIO . atomically . modifyTVar w $ Map.insert (sSessionId . rStarter $ r) r
 
 findResult
