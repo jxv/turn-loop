@@ -1,0 +1,37 @@
+name: turn-loop
+version: '0.0.0'
+category: Game
+synopsis: Manage multiple turned-based sessions
+description: Manage multiple turned-based sessions
+maintainer: Joe Vargas
+extra-source-files:
+- package.yaml
+- README.md
+- stack.yaml
+ghc-options: -Wall
+default-extensions:
+- FlexibleContexts
+- FlexibleInstances
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- NamedFieldPuns
+- ScopedTypeVariables
+- OverloadedStrings
+library:
+  dependencies:
+  - base >=4.7 && <5
+  - stm
+  source-dirs: library
+tests:
+ turn-loop-test-suite:
+    dependencies:
+    - base
+    - hspec
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: test-suite
+github: jxv/turn-loop
+license: BSD3
