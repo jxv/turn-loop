@@ -34,7 +34,8 @@ library
     , containers
     , stm
   exposed-modules:
-      TurnLoop
+      TurnLoop.STM
+      TurnLoop.Types
   default-language: Haskell2010
 
 test-suite turn-loop-test-suite

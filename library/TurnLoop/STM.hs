@@ -1,4 +1,12 @@
-module TurnLoop.Base where
+module TurnLoop.STM
+  ( newSessionWithChan
+  , UserQueue
+  , AnnounceDeck
+  , newLobbyFIFOWithSTM
+  , newSessionsWithSTM
+  , newRegistryWithSTM
+  , newResultsWithSTM
+  ) where
 
 import qualified Data.Map as Map
 import Control.Monad.IO.Class (MonadIO(..))
@@ -8,83 +16,20 @@ import Control.Concurrent.MVar ()
 import Control.Concurrent.Chan ()
 import Data.Map (Map)
 
-type Many rep a = (rep -> a)
-
-data Step state terminal = Step
-  { sState :: state
-  , sTerminal  :: Maybe terminal
-  } deriving (Show, Eq)
-
-data Result sessionId rep userId state extra = Result
-  { rStarter :: Starter sessionId rep userId
-  , rState :: state
-  , rExtra :: extra
-  }
-
-data Starter sessionId rep userId = Starter
-  { sSessionId :: sessionId
-  , sUserIds :: Many rep userId
-  }
-
-data Registry userId user m = Registry
-  { rInsertUser :: user -> m userId
-  , rGetUserById :: userId -> m (Maybe user)
-  }
-
-data Lobby sessionId rep userId m = Lobby
-  { lTransferUser :: userId -> m (Maybe (Starter sessionId rep userId))
-  , lDequeueUser :: sessionId -> m (Maybe userId)
-  , lAnnounceSession :: Starter sessionId rep userId -> m ()
-  }
-
-data SessionEntry rep input state terminal m = SessionEntry
-  { seThread :: Thread m
-  , seGames :: Many rep (Session input state terminal)
-  }
-
-data Session input state terminal = Session
-  { sInput :: Chan input
-  , sStep :: Chan (Step state terminal)
-  }
-
-data SessionRecord userId rep input state terminal m = SessionRecord
-  { srThread :: Thread m
-  , srLabeled :: Many rep (LabeledSession userId input state terminal)
-  }
-
-data LabeledSession userId input state terminal = LabeledSession
-  { lsUserId :: userId
-  , lsSession :: Session input state terminal
-  }
-
-data Sessions sessionId userId rep input state terminal m = Sessions
-  { sInsertSession :: (sessionId, SessionRecord userId rep input state terminal m) -> m ()
-  , sFindSession :: sessionId -> m (Maybe (SessionRecord userId rep input state terminal m))
-  , sRemoveSession :: sessionId -> m ()
-  }
-
-data Results sessionId rep userId state extra m = Results
-  { rSaveResult :: Result sessionId rep userId state extra -> m ()
-  , rFindResult :: sessionId -> m (Maybe (Result sessionId rep userId state extra))
-  }
-
-data Thread m = Thread
-  { tThreadId :: ThreadId
-  , tKill :: m ()
-  }
+import TurnLoop.Types
 
 -- Session
 
-newSession :: MonadIO m => m (Session input state terminal)
-newSession = liftIO $ Session <$> newChan <*> newChan
+newSessionWithChan :: MonadIO m => m (Session input state terminal)
+newSessionWithChan = liftIO $ Session <$> newChan <*> newChan
 
 -- Lobby
 
 type UserQueue sessionId rep userId = [(userId, MVar (Starter sessionId rep userId))]
 type AnnounceDeck sessionId rep userId = Map sessionId [MVar (Starter sessionId rep userId)]
 
-newLobbyFIFO :: (MonadIO m, Ord sessionId) => m (Lobby sessionId rep userId m)
-newLobbyFIFO = liftIO $ do
+newLobbyFIFOWithSTM :: (MonadIO m, Ord sessionId) => m (Lobby sessionId rep userId m)
+newLobbyFIFOWithSTM = liftIO $ do
   p <- liftIO $ newTVarIO []
   w <- liftIO $ newTVarIO Map.empty
   return Lobby
@@ -146,8 +91,8 @@ newLobbyFIFO = liftIO $ do
 
 -- Sessions
 
-newSessions :: (MonadIO m, Ord sessionId) => m (Sessions sessionId userId rep input state terminal m)
-newSessions = liftIO $ do
+newSessionsWithSTM :: (MonadIO m, Ord sessionId) => m (Sessions sessionId userId rep input state terminal m)
+newSessionsWithSTM = liftIO $ do
   w <- liftIO $ newTVarIO Map.empty
   return Sessions
     { sInsertSession = insertSession w
@@ -179,16 +124,16 @@ newSessions = liftIO $ do
 
 -- Registry
 
-newRegistryInMemory :: (MonadIO m, Ord userId) => m userId -> m (Registry userId user m)
-newRegistryInMemory genUserId = do
+newRegistryWithSTM :: (MonadIO m, Ord userId) => m userId -> m (Registry userId user m)
+newRegistryWithSTM genUserId = do
   w <- liftIO $ newTVarIO Map.empty
   return Registry
     { rInsertUser = insertUser genUserId w
     , rGetUserById = getUserById w }
   where
     insertUser :: (Ord userId, MonadIO m) => m userId ->  TVar (Map userId user) -> user -> m userId
-    insertUser genUserId w user = do
-      userId <- genUserId
+    insertUser genUserId' w user = do
+      userId <- genUserId'
       liftIO . atomically $ do
         m <- readTVar w
         writeTVar w (Map.insert userId user m)
@@ -201,8 +146,8 @@ newRegistryInMemory genUserId = do
 
 -- Results
 
-newResultsInMemory :: (MonadIO m, Ord sessionId) => m (Results sessionId rep userId state extra m)
-newResultsInMemory = liftIO $ do
+newResultsWithSTM :: (MonadIO m, Ord sessionId) => m (Results sessionId rep userId state extra m)
+newResultsWithSTM = liftIO $ do
   w <- liftIO $ newTVarIO Map.empty
   return Results
     { rSaveResult = saveResult w
