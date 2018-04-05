@@ -2,10 +2,10 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f3d27e944e01cc69d5710f1961608bab8110ab780fb41a3a02ea37483d452715
+-- hash: dae7bf925a2468f95d3b2cf36b46d343fd50ef1fe133f0f6a4a65c0bfc1045eb
 
 name:           turn-loop
-version:        0.0.0
+version:        0.1.0
 synopsis:       Manage multiple turned-based sessions
 description:    Manage multiple turned-based sessions
 category:       Game

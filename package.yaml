@@ -1,5 +1,5 @@
 name: turn-loop
-version: '0.0.0'
+version: '0.1.0'
 category: Game
 synopsis: Manage multiple turned-based sessions
 description: Manage multiple turned-based sessions

@@ -6,6 +6,7 @@ module TurnLoop.STM
   , newSessionsWithSTM
   , newRegistryWithSTM
   , newResultsWithSTM
+  , newComponentsWithSTM
   ) where
 
 import qualified Data.Map as Map
@@ -168,3 +169,10 @@ newResultsWithSTM = liftIO $ do
     findResult w i = liftIO . atomically $ do
       m <- readTVar w
       return $ Map.lookup i m
+
+newComponentsWithSTM :: (MonadIO m, Ord userId, Ord sessionId) => m userId -> m (Components sessionId rep userId user input state extra terminal m)
+newComponentsWithSTM genUserId = Components
+  <$> newLobbyFIFOWithSTM
+  <*> newSessionsWithSTM
+  <*> (newRegistryWithSTM genUserId)
+  <*> newResultsWithSTM

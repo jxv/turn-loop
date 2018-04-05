@@ -12,6 +12,7 @@ module TurnLoop.Types
   , Sessions(..)
   , Results(..)
   , Thread(..)
+  , Components(..)
   ) where
 
 import Control.Concurrent
@@ -79,4 +80,11 @@ data Results sessionId rep userId state extra m = Results
 data Thread m = Thread
   { tThreadId :: ThreadId
   , tKill :: m ()
+  }
+
+data Components sessionId rep userId user input state extra terminal m = Components
+  { cLobby :: Lobby sessionId rep userId m
+  , cSessions :: Sessions sessionId userId rep input state terminal m
+  , cRegistry :: Registry userId user m
+  , cResults :: Results sessionId rep userId state extra m
   }
